@@ -7,11 +7,11 @@ locals {
 data "external" "archive_prepare" {
   count = var.create && var.create_package ? 1 : 0
 
-  program = [local.python, "${path.module}/package.py", "prepare"]
+  program = [local.python, "${abspath(path.module)}/package.py", "prepare"]
 
   query = {
     paths = jsonencode({
-      module = path.module
+      module = abspath(path.module)
       root   = path.root
       cwd    = path.cwd
     })
@@ -33,7 +33,7 @@ data "external" "archive_prepare" {
         # Temporary fix when building from multiple locations
         # We should take into account content of package.py when counting hash
         # Related issue: https://github.com/terraform-aws-modules/terraform-aws-lambda/issues/63
-        # "${path.module}/package.py"
+        # "${abspath(path.module)}/package.py"
       ]
     )
 
@@ -64,7 +64,7 @@ resource "null_resource" "archive" {
 
   provisioner "local-exec" {
     interpreter = [
-      local.python, "${path.module}/package.py", "build",
+      local.python, "${abspath(path.module)}/package.py", "build",
       "--timestamp", data.external.archive_prepare[0].result.timestamp
     ]
     command = data.external.archive_prepare[0].result.build_plan_filename
