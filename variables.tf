@@ -676,3 +676,9 @@ variable "recreate_missing_package" {
   type        = bool
   default     = true
 }
+
+variable "always_recreate_package" {
+  description = "Recreate the Lambda package even if nothing has changed"
+  type        = bool
+  default     = true
+}

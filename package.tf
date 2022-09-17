@@ -37,7 +37,7 @@ data "external" "archive_prepare" {
       ]
     )
 
-    recreate_missing_package = var.recreate_missing_package
+    recreate_missing_package = var.recreate_missing_package || var.always_recreate_package
   }
 }
 
@@ -57,15 +57,16 @@ resource "local_file" "archive_plan" {
 resource "null_resource" "archive" {
   count = var.create && var.create_package ? 1 : 0
 
-  triggers = {
-    filename  = data.external.archive_prepare[0].result.filename
-    timestamp = data.external.archive_prepare[0].result.timestamp
-  }
+  triggers = merge(
+    { filename = data.external.archive_prepare[0].result.filename },
+    # Including the timestamp in triggers will cause the resource to change every time.
+    var.always_recreate_package ? { timestamp = data.external.archive_prepare[0].result.timestamp } : {}
+  )
 
   provisioner "local-exec" {
     interpreter = [
       local.python, "package.py", "build",
-      "--timestamp", data.external.archive_prepare[0].result.timestamp
+      "--timestamp", var.always_recreate_package ? data.external.archive_prepare[0].result.timestamp : 0
     ]
     command     = abspath(data.external.archive_prepare[0].result.build_plan_filename)
     working_dir = abspath(path.module)
