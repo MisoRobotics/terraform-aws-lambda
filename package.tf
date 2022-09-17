@@ -7,13 +7,13 @@ locals {
 data "external" "archive_prepare" {
   count = var.create && var.create_package ? 1 : 0
 
-  program = [local.python, "${path.module}/package.py", "prepare"]
+  program = [local.python, "${abspath(path.module)}/package.py", "prepare"]
 
   query = {
     paths = jsonencode({
-      module = path.module
-      root   = path.root
-      cwd    = path.cwd
+      module = abspath(path.module)
+      root   = abspath(path.root)
+      cwd    = abspath(path.cwd)
     })
 
     docker = var.build_in_docker ? jsonencode({
@@ -24,9 +24,9 @@ data "external" "archive_prepare" {
       with_ssh_agent    = var.docker_with_ssh_agent
     }) : null
 
-    artifacts_dir = var.artifacts_dir
+    artifacts_dir = abspath(var.artifacts_dir)
     runtime       = var.runtime
-    source_path   = jsonencode(var.source_path)
+    source_path   = jsonencode(abspath(var.source_path))
     hash_extra    = var.hash_extra
     hash_extra_paths = jsonencode(
       [
@@ -48,7 +48,7 @@ resource "local_file" "archive_plan" {
   count = var.create && var.create_package ? 1 : 0
 
   content              = data.external.archive_prepare[0].result.build_plan
-  filename             = data.external.archive_prepare[0].result.build_plan_filename
+  filename             = abspath(data.external.archive_prepare[0].result.build_plan_filename)
   directory_permission = "0755"
   file_permission      = "0644"
 }
@@ -64,10 +64,11 @@ resource "null_resource" "archive" {
 
   provisioner "local-exec" {
     interpreter = [
-      local.python, "${path.module}/package.py", "build",
+      local.python, "package.py", "build",
       "--timestamp", data.external.archive_prepare[0].result.timestamp
     ]
-    command = data.external.archive_prepare[0].result.build_plan_filename
+    command     = abspath(data.external.archive_prepare[0].result.build_plan_filename)
+    working_dir = abspath(path.module)
   }
 
   depends_on = [local_file.archive_plan]
