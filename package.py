@@ -305,7 +305,10 @@ class ZipWriteStream:
         if failed:
             os.unlink(self._tmp_filename)
         else:
-            os.replace(self._tmp_filename, self.filename)
+            try:
+                os.replace(self._tmp_filename, self.filename)
+            except FileNotFoundError as exc:
+                print(f"Caught Exception: {exc}")
 
     def __enter__(self):
         return self.open()
@@ -1107,7 +1110,7 @@ def install_poetry_dependencies(query, path):
         # Install dependencies into the temporary directory.
         with cd(temp_dir):
             # NOTE: poetry must be available in the build environment, which is the case with lambci/lambda:build-python* docker images but not public.ecr.aws/sam/build-python* docker images
-            # FIXME: poetry install does not currently allow to specify the target directory so we export the 
+            # FIXME: poetry install does not currently allow to specify the target directory so we export the
             # requirements then install them with "pip --no-deps" to avoid using pip dependency resolver
             poetry_commands = [
                 shlex_join(
